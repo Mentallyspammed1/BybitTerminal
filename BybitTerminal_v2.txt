@@ -20,7 +20,7 @@ import pandas as pd
 import ccxt
 from colorama import init, Fore, Style
 
-from indicators import rsi  # Import rsi.py from indicators subdirectory
+from indicators import rsi, ATR  # Import new indicators
 
 # Initialize Colorama
 init(autoreset=True)
@@ -321,8 +321,9 @@ def display_market_menu():
     print(Fore.MAGENTA + "2. Get Order Book")
     print(Fore.MAGENTA + "3. List Available Symbols")
     print(Fore.MAGENTA + "4. Display RSI (Relative Strength Index)")
-    print(Fore.MAGENTA + "5. Back to Main Menu")
-    return input(Fore.YELLOW + Style.BRIGHT + "Enter your choice (1-5): ")
+    print(Fore.MAGENTA + "5. Display ATR (Average True Range)")  # New option
+    print(Fore.MAGENTA + "6. Back to Main Menu")
+    return input(Fore.YELLOW + Style.BRIGHT + "Enter your choice (1-6): ")
 
 
 def view_account_balance():
@@ -617,6 +618,41 @@ def display_rsi_terminal():
     input(Fore.YELLOW + Style.BRIGHT + "\nPress Enter to continue...")
 
 
+def display_atr_terminal():
+    """Fetches and displays ATR using the atr.py module."""
+    if not EXCHANGE:
+        print(Fore.RED + Style.BRIGHT + "CCXT Bybit client not initialized.")
+        return
+
+    symbol = input(Fore.YELLOW + "Enter symbol to calculate ATR (e.g., BTCUSDT): ").upper()
+    try:
+        ohlcv = EXCHANGE.fetch_ohlcv(symbol, timeframe="1h", limit=100)
+        if not ohlcv:
+            print(Fore.RED + Style.BRIGHT + f"Could not fetch OHLCV data for {symbol}")
+            return
+
+        df = pd.DataFrame(
+            ohlcv, columns=["timestamp", "Open", "High", "Low", "Close", "Volume"]
+        )
+
+        atr_config = {"length": 14}
+        atr_indicator = ATR(atr_config)
+        atr_values = atr_indicator.calculate(df)
+
+        if not atr_values.empty:
+            print(Fore.CYAN + Style.BRIGHT + "╔══════════════" + Fore.GREEN + "ATR ({}-period) for {}".format(atr_config["length"], symbol) + Fore.CYAN + "══════════╗")
+            print(Fore.WHITE + atr_values[["timestamp", f'atr_{atr_config["length"]}']].to_string(index=False))
+        else:
+            print(Fore.RED + Style.BRIGHT + f"ATR calculation failed for {symbol}")
+
+    except ccxt.ExchangeError as e:
+        print(Fore.RED + Style.BRIGHT + f"Bybit Exchange Error: {e}")
+    except Exception as e:
+        print(Fore.RED + Style.BRIGHT + f"Error displaying ATR: {e}")
+
+    input(Fore.YELLOW + Style.BRIGHT + "\nPress Enter to continue...")
+
+
 def display_api_keys():
     """Displays API keys loaded from .env (for testing purposes)."""
     os.system("clear")
@@ -684,6 +720,8 @@ def main():
                 elif choice_market == "4":
                     display_rsi_terminal()
                 elif choice_market == "5":
+                    display_atr_terminal()  # Handle new option
+                elif choice_market == "6":
                     break
                 else:
                     print(Fore.RED + Style.BRIGHT + "Invalid choice. Please try again.")
