@@ -143,7 +143,7 @@ class FibonacciPivotPoints:
 
         # Proximity Threshold (e.g., 0.5% of price difference between levels) - Adaptive based on price range
         typical_diff = (pivot_points.iloc[0]['r1'] - pivot_points.iloc[0]['pivot']) # Example diff, can average across levels for robustness
-        proximity_threshold = typical_diff * 0.005 if typical_diff > 0 else abs(pivot_points.iloc[0]['s1'] - pivot_points.iloc[0]['pivot']) * 0.005 if abs(pivot_points.iloc[0]['s1'] - pivot_points.iloc[0]['pivot']) > 0 else current_price * 0.0005 # Fallback if diff is zero
+        proximity_threshold = typical_diff * 0.005 if typical_diff > 0 else abs(pivot_points.iloc[0]['s1'] - pivot_points.iloc[0]['pivot']) * 0.005 if abs(pivot_points.iloc[0]['s1'] - pivot_points.iloc[0]['pivot']) * 0.005 else 0
 
 
         # Iterate through all calculated pivot point levels
