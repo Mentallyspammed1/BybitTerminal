@@ -7,6 +7,8 @@ from .ichimoku import Ichimoku
 from .pivot_points import PivotPoints
 from .fibonacci_pivot_points import FibonacciPivotPoints
 from .volatility import Volatility
+from .atr import ATR
+from .atr_trailing_stop import ATRTrailingStop
 from .base import Indicator  # Import Indicator from base.py
 
 __all__ = [
@@ -20,5 +22,7 @@ __all__ = [
     "PivotPoints",
     "FibonacciPivotPoints",
     "Volatility",
-    "BollingerBands"
+    "BollingerBands",
+    "ATR",
+    "ATRTrailingStop"
 ]
