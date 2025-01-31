@@ -103,6 +103,4 @@ class ATRTrailingStop:
                 atr_trailing_stop.iloc[i] = prev_atr_trailing_stop # If close unchanged, maintain previous stop level - Stability in stillness
 
 
-        # --- 5. Construct and Return DataFrame ---
-        atr_ts_df = pd.DataFrame({'atr_trailing_stop': atr_trailing_stop}) # Create DataFrame with the ATR Trailing Stop series
-        return atr_ts_df # Return the DataFrame shield, ready for battle!
+        return pd.DataFrame({'atr_trailing_stop': atr_trailing_stop})
