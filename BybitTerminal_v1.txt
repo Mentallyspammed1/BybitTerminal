@@ -20,7 +20,7 @@ import pandas as pd
 import ccxt
 from colorama import init, Fore, Style
 
-from indicators import rsi  # Import rsi.py from indicators subdirectory
+from indicators import rsi, ATR  # Import new indicators
 
 # Initialize Colorama
 init(autoreset=True)
@@ -321,8 +321,9 @@ def display_market_menu():
     print(Fore.MAGENTA + "2. Get Order Book")
     print(Fore.MAGENTA + "3. List Available Symbols")
     print(Fore.MAGENTA + "4. Display RSI (Relative Strength Index)")
-    print(Fore.MAGENTA + "5. Back to Main Menu")
-    return input(Fore.YELLOW + Style.BRIGHT + "Enter your choice (1-5): ")
+    print(Fore.MAGENTA + "5. Display ATR (Average True Range)")  # New option
+    print(Fore.MAGENTA + "6. Back to Main Menu")
+    return input(Fore.YELLOW + Style.BRIGHT + "Enter your choice (1-6): ")
 
 
 def view_account_balance():
@@ -555,185 +556,4 @@ def list_symbols():
 
 
 def display_rsi_terminal():
-    """Fetches and displays RSI using the rsi.py module."""
-    if not EXCHANGE:
-        print(Fore.RED + Style.BRIGHT + "CCXT Bybit client not initialized.")
-        return
-
-    symbol = input(
-        Fore.YELLOW + "Enter symbol to calculate RSI (e.g., BTCUSDT): "
-    ).upper()
-    try:
-        ohlcv = EXCHANGE.fetch_ohlcv(symbol, timeframe="1h", limit=100)
-        if not ohlcv:
-            print(Fore.RED + Style.BRIGHT + f"Could not fetch OHLCV data for {symbol}")
-            return
-
-        df = pd.DataFrame(
-            ohlcv, columns=["timestamp", "Open", "High", "Low", "Close", "Volume"]
-        )
-
-        # --- DATA TYPE CONVERSION FIX ---
-        numeric_cols = ["Open", "High", "Low", "Close", "Volume"]
-        for col in numeric_cols:
-            try:
-                df[col] = pd.to_numeric(df[col])
-            except ValueError as e:
-                print(
-                    Fore.RED
-                    + Style.BRIGHT
-                    + f"Error converting column '{col}' to numeric: {e}"
-                )
-                print(Fore.RED + Style.BRIGHT + "RSI calculation aborted.")
-                return
-
-        if df.empty:
-            print(Fore.RED + Style.BRIGHT + f"No OHLCV data returned for {symbol}")
-            return
-
-        config = {"length": 14}
-        rsi_indicator = rsi.RSI(config)
-        rsi_values = rsi_indicator.calculate(df)
-
-        if not rsi_values.empty:
-            print(
-                Fore.CYAN
-                + Style.BRIGHT
-                + "╔══════════════"
-                + Fore.GREEN
-                + "RSI ({}-period) for {}".format(config["length"], symbol)
-                + Fore.CYAN
-                + "══════════╗"
-            )
-            rsi_indicator.display_in_terminal(rsi_values, symbol)
-        else:
-            print(Fore.RED + Style.BRIGHT + f"RSI calculation failed for {symbol}")
-
-    except ccxt.ExchangeError as e:
-        print(Fore.RED + Style.BRIGHT + f"Bybit Exchange Error: {e}")
-    except Exception as e:
-        print(Fore.RED + Style.BRIGHT + f"Error displaying RSI: {e}")
-
-    input(Fore.YELLOW + Style.BRIGHT + "\nPress Enter to continue...")
-
-
-def display_api_keys():
-    """Displays API keys loaded from .env (for testing purposes)."""
-    os.system("clear")
-    print(
-        Fore.CYAN
-        + Style.BRIGHT
-        + "╔══════════"
-        + Fore.GREEN
-        + "DISPLAY API KEYS (DEBUG)"
-        + Fore.CYAN
-        + "══════════╗"
-    )
-    if BYBIT_API_KEY and BYBIT_API_SECRET:
-        print(
-            Fore.YELLOW
-            + Style.BRIGHT
-            + "\nAPI Keys loaded from .env (Last 4 chars shown):"
-        )
-        print(Fore.WHITE + f"  BYBIT_API_KEY: {Fore.GREEN}{BYBIT_API_KEY[-4:]}")
-        print(Fore.WHITE + f"  BYBIT_API_SECRET: {Fore.GREEN}{BYBIT_API_SECRET[-4:]}")
-        print(Fore.YELLOW + Style.BRIGHT + "\nWarning: Do not share your API keys!")
-    else:
-        print(Fore.RED + Style.BRIGHT + "API keys not loaded. Check .env file.")
-    input(Fore.YELLOW + Style.BRIGHT + "\nPress Enter to continue...")
-
-
-def main():
-    """Main function to run the terminal."""
-    while True:
-        choice_main = display_main_menu()
-        if choice_main == "1":
-            while True:
-                choice_account = view_account_menu()
-                if choice_account == "1":
-                    view_account_balance()
-                elif choice_account == "2":
-                    view_order_history()
-                elif choice_account == "3":
-                    print(
-                        Fore.YELLOW
-                        + Style.BRIGHT
-                        + "Simulated Deposit Funds - Feature in development."
-                    )
-                    input(Fore.YELLOW + Style.BRIGHT + "Press Enter to continue...")
-                elif choice_account == "4":
-                    print(
-                        Fore.YELLOW
-                        + Style.BRIGHT
-                        + "Simulated Withdraw Funds - Feature in development."
-                    )
-                    input(Fore.YELLOW + Style.BRIGHT + "Press Enter to continue...")
-                elif choice_account == "5":
-                    break
-                else:
-                    print(Fore.RED + Style.BRIGHT + "Invalid choice. Please try again.")
-        elif choice_main == "2":
-            while True:
-                choice_market = display_market_menu()
-                if choice_market == "1":
-                    fetch_symbol_price()
-                elif choice_market == "2":
-                    get_order_book()
-                elif choice_market == "3":
-                    list_symbols()
-                elif choice_market == "4":
-                    display_rsi_terminal()
-                elif choice_market == "5":
-                    break
-                else:
-                    print(Fore.RED + Style.BRIGHT + "Invalid choice. Please try again.")
-        elif choice_main == "3":
-            while True:
-                choice_trade = display_trading_menu()
-                if choice_trade == "1":
-                    place_market_order_requests()
-                elif choice_trade == "2":
-                    place_limit_order_requests()
-                elif choice_trade == "3":
-                    print(
-                        Fore.YELLOW
-                        + Style.BRIGHT
-                        + "Cancel Futures Order (CCXT) - Feature in development."
-                    )
-                    input(Fore.YELLOW + Style.BRIGHT + "Press Enter to continue...")
-                elif choice_trade == "4":
-                    print(
-                        Fore.YELLOW
-                        + Style.BRIGHT
-                        + "View Open Futures Orders (CCXT) - Feature in development."
-                    )
-                    input(Fore.YELLOW + Style.BRIGHT + "Press Enter to continue...")
-                elif choice_trade == "5":
-                    print(
-                        Fore.YELLOW
-                        + Style.BRIGHT
-                        + "View Open Futures Positions (CCXT) - Feature in development."
-                    )
-                    input(Fore.YELLOW + Style.BRIGHT + "Press Enter to continue...")
-                elif choice_trade == "6":
-                    print(
-                        Fore.YELLOW
-                        + Style.BRIGHT
-                        + "Place Trailing Stop (Simulated) - Feature in development."
-                    )
-                    input(Fore.YELLOW + Style.BRIGHT + "Press Enter to continue...")
-                elif choice_trade == "7":
-                    break
-                else:
-                    print(Fore.RED + Style.BRIGHT + "Invalid choice. Please try again.")
-        elif choice_main == "4":
-            display_api_keys()
-        elif choice_main == "5":
-            print(Fore.CYAN + Style.BRIGHT + "Exiting terminal...")
-            break
-        else:
-            print(Fore.RED + Style.BRIGHT + "Invalid choice. Please try again.")
-
-
-if __name__ == "__main__":
-    main()
+    """Fetches and displays RSI using the rsi.py module."
