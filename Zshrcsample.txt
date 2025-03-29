@@ -1,0 +1,1513 @@
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+export TERM="xterm-256color"
+export LANG="en_US.UTF-8"
+export SHELL="/data/data/com.termux/files/usr/bin/zsh"
+export ZSH="$HOME/.oh-my-zsh"
+export ZSHRC="$HOME/.zshrc"
+
+# Set Zsh options
+setopt auto_cd
+setopt correct
+setopt numeric_glob_sort
+setopt no_flow_control
+setopt extended_glob
+setopt interactive_comments
+setopt glob_dots
+
+# History settings
+export HISTFILE="$HOME/.zsh_history_encrypted"
+export HISTSIZE=50000
+export SAVEHIST=50000
+export HIST_IGNORE_SPACE="true"
+export HIST_IGNORE_DUPS="true"
+export HIST_NO_STORE="ls:cd:pwd:exit:history:bg:fg:jobs"
+setopt hist_verify
+setopt share_history
+setopt inc_append_history
+setopt hist_no_functions
+
+# Powerlevel10k theme
+THEME_DIR="$ZSH/custom/themes/powerlevel10k"
+THEME_FILE="$THEME_DIR/powerlevel10k.zsh-theme"
+if [[ -f "$THEME_FILE" ]]; then
+    ZSH_THEME="powerlevel10k/powerlevel10k"
+    POWERLEVEL10K_MODE='nerdfont-complete'
+    POWERLEVEL10K_LEFT_PROMPT_ELEMENTS=(context dir vcs time)
+    POWERLEVEL10K_RIGHT_PROMPT_ELEMENTS=(status command_execution_time ram)
+    POWERLEVEL10K_PROMPT_ON_NEWLINE=true
+    POWERLEVEL10K_MULTILINE_NEWLINE=true
+    source "$THEME_FILE" || echo "Failed to source $THEME_FILE"
+else
+    ZSH_THEME="agnoster"
+    echo "Powerlevel10k not found at $THEME_FILE. Using 'agnoster' theme."
+    echo "Install with: git clone https://github.com/romkatv/powerlevel10k.git $THEME_DIR"
+    [[ -x "$(command -v termux-toast)" ]] && termux-toast "Install Powerlevel10k for enhanced prompt"
+fi
+
+# Plugins
+plugins=(
+    git
+    zsh-z
+    
+    command-not-found
+    zsh-completions
+    aichat
+)
+
+source "$ZSH/oh-my-zsh.sh" 2>/dev/null || {
+    echo "Oh My Zsh not found. Install with: sh -c \"\$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\""
+    [[ -x "$(command -v termux-toast)" ]] && termux-toast "Install Oh My Zsh"
+}
+
+optional_plugins=(
+    "fast-syntax-highlighting https://github.com/zdharma-continuum/fast-syntax-highlighting"
+    "aichat https://github.com/sigoden/aichat"
+)
+for plugin in "${optional_plugins[@]}"; do
+    plugin_name=$(echo "$plugin" | cut -d' ' -f1)
+    plugin_url=$(echo "$plugin" | cut -d' ' -f2-)
+    plugin_path="~/.oh-my-zsh/custom/plugins/$plugin_name"
+    if [[ -r "$plugin_path/$plugin_name.plugin.zsh" || -r "$plugin_path/$plugin_name.zsh" ]]; then
+        source "$plugin_path/$plugin_name.plugin.zsh" 2>/dev/null || source "$plugin_path/$plugin_name.zsh"
+    else
+        echo "Optional plugin '$plugin_name' not found. Install with: git clone $plugin_url $plugin_path"
+    fi
+done
+
+# Custom Zsh settings
+ZSH_CUSTOM="$HOME/.config/zsh"
+[[ -d "$ZSH_CUSTOM" ]] && for config_file in "$ZSH_CUSTOM"/*.zsh; do
+    source "$config_file" 2>/dev/null
+done
+
+# Completion settings
+setopt promptsubst
+zstyle 'completion:*' menu select=1 _complete '\' _ignored '*'
+zstyle 'completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}\' 'r:|=*' 'l:|=* r:|=*'
+zstyle 'completion:*' use-cache on
+zstyle 'completion:*' cache-path "$HOME/.zsh_cache"
+
+# Editor and Path settings
+export EDITOR="nano"
+export VISUAL="$EDITOR"
+export PYTHONPATH="/data/data/com.termux/files/usr/bin/python"
+export PATH="$HOME/bin:/data/data/com.termux/files/usr/bin:$PATH:$HOME/.cargo/bin:$HOME/.local/bin"
+
+# Aliases
+[[ -x "$(command -v bat)" ]] && alias cat="bat --theme=Dracula --paging=auto" || alias cat="cat"
+[[ -x "$(command -v eza)" ]] && {
+    alias ls="eza --group-directories-first --icons"
+    alias la="eza -lah --icons"
+    alias lt="eza -T --level=2"
+} || alias ls="ls --color=auto"
+[[ -x "$(command -v fd)" ]] && alias find="fd" || alias find="find"
+alias grep="grep --color=auto"
+alias df="df -h"
+alias du="du -h --max-depth=1"
+alias mkdir="mkdir -p"
+alias vim="vim"
+alias gs="git status"
+alias ga="git add"
+alias gc="git commit"
+alias pkg="pkg"
+alias sudo="tsudo"
+alias rustup="rustup"
+alias python="$PYTHONPATH"
+alias gimg="bash '$HOME/gimg'"
+alias price="python '$HOME/price'"
+alias pyrm="node '$HOME/bin/neoncli.js'"
+
+# Custom functions
+man-search() { man -k "$@" | less 2>/dev/null || echo "No man pages found"; }
+list_processes_by_memory() { ps -eo pid,user,%mem,%cpu,start,command | sort -nrk 3 2>/dev/null || ps aux; }
+update_all() { pkg update && pkg upgrade -y; }
+sync_dotfiles() { cd "$HOME" && git pull && source "$ZSHRC"; }
+manage_ssh_keys() { ssh-keygen -t ed25519 -C "$1"; }
+ssh_work() { ssh user@work_server; }
+gen_password() { tr -dc A-Za-z0-9_ < /dev/urandom | head -c 12; echo; }
+open_dir() { termux-open . 2>/dev/null || echo "termux-open not available"; }
+run_in_dirs() { for dir in */; do (cd "$dir" && "$@"); done; }
+find_large_files() { find . -type f -size +100M -exec ls -lh {} \; 2>/dev/null; }
+shorten_url() { curl -s "https://bit.ly/?url=$1" | grep -o 'https://bit.ly/[a-zA-Z0-9]*' 2>/dev/null; }
+clean_temp_files() { find ~ -type f -name "*.tmp" -delete; }
+encrypt_history() { [[ -f "$HISTFILE" ]] && gnupg -c --batch --yes -o "$HISTFILE.gpg" "$HISTFILE" && rm "$HISTFILE"; }
+decrypt_history() { [[ -f "$HISTFILE.gpg" ]] && gnupg -d --batch --yes "$HISTFILE.gpg" > "$HISTFILE" 2>/dev/null; }
+system_info() { termux-info 2>/dev/null || echo "termux-info not installed"; }
+update_shell() { source "$ZSHRC"; }
+welcome_message() { echo "Welcome to your ZSH environment! [$(date)]"; }
+list_aliases() { alias; }
+list_functions() { typeset -f | grep -v '^#' | sed -n '/^ *[a-zA-Z]/s/^\( *\)\([a-zA-Z_]*\).*/\2/p'; }
+history_search() { history | grep "$@"; }
+backup_dotfiles() { tar -czf "$HOME/dotfiles_$(date +%Y%m%d).tar.gz" "$ZSHRC" "$ZSH_CUSTOM" 2>/dev/null; }
+run_python() {
+    if [[ -x "$PYTHONPATH" && -f "$1" ]]; then
+        "$PYTHONPATH" "$1" || echo "Error running $1"
+    else
+        echo "Python not found or script $1 doesn’t exist"
+    fi
+}
+
+# AIChat integration
+export AICHA_CONFIG="$HOME/.config/aichat"
+if [[ ! -x "$(command -v aichat)" ]]; then
+    echo "aichat not installed. Install with: pkg install rust && cargo install aichat (see https://github.com/sigoden/aichat)"
+fi
+_aichat_zsh() {
+    local current_buffer="$BUFFER"
+    if [[ -n "$current_buffer" ]]; then
+        echo -n "AI Suggestion: "
+        if command -v aichat >/dev/null 2>&1; then
+            aichat suggest "$current_buffer" --max-length 10000 2>/dev/null || echo "Error with aichat"
+        else
+            echo "Install aichat for AI suggestions"
+        fi
+    else
+        echo "AIChat: Type a command first (Alt+E)"
+    fi
+    zle accept-line
+}
+zle -N _aichat_zsh
+summarize_output() {
+    local output="$1"
+    if command -v aichat >/dev/null 2>&1; then
+        echo "$output" | aichat summarize --max-length 5000 2>/dev/null || echo "Error summarizing"
+    else
+        echo "$output" | head -n 1
+    fi
+}
+
+# --- CCXT Bybit Functions ---
+
+# Helper function to execute python scripts with dotenv loading and ccxt
+_ccxt_bybit_python() {
+  python -c "
+import ccxt, os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+exchange = ccxt.bybit({
+    'apiKey': os.getenv('BYBIT_API_KEY'),
+    'secret': os.getenv('BYBIT_SECRET'),
+})
+
+if not exchange.apiKey or not exchange.secret:
+    print('Error: BYBIT_API_KEY and BYBIT_SECRET must be set in .env file.')
+    exit(1)
+
+${1} # Python code passed as argument
+  "
+}
+
+
+# 1. Get Account Balance
+bybit_balance() {
+  _ccxt_bybit_python "
+try:
+    balance = exchange.fetch_balance()
+    print('Account Balance:')
+    if balance and 'total' in balance:
+        for currency, amount in balance['total'].items():
+            if amount > 0: # Show only currencies with balance
+                print(f'  {currency}: {amount}')
+    else:
+        print('Could not retrieve balance or empty balance.')
+except Exception as e:
+    print(f'Error fetching balance: {e}')
+  "
+}
+
+# 2. Get Open Positions
+bybit_positions() {
+  _ccxt_bybit_python "
+try:
+    positions = exchange.fetch_positions()
+    open_positions = [p for p in positions if p['side']] # Filter out closed positions
+
+    if open_positions:
+        print('Open Positions:')
+        for pos in open_positions:
+            print(f'  Symbol: {pos['symbol']}, Side: {pos['side']}, Amount: {pos['amount']}, Entry Price: {pos['entryPrice']}, Liquidation Price: {pos['liquidationPrice']}')
+    else:
+        print('No open positions.')
+except Exception as e:
+    print(f'Error fetching positions: {e}')
+  "
+}
+
+# 3. Get Current Leverage (Requires symbol)
+bybit_leverage() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_leverage <symbol>"
+    return 1
+  fi
+  _ccxt_bybit_python "
+symbol = '$1'
+try:
+    leverage_settings = exchange.fetch_leverage(symbol) # This might not be directly available in ccxt, check Bybit API docs
+    print(f'Leverage for {symbol}:')
+    print(leverage_settings) # Output might need parsing based on actual API response
+except Exception as e:
+    print(f'Error fetching leverage for {symbol}: {e}')
+  "
+}
+
+# 4. Set Leverage (Requires symbol and leverage value)
+bybit_set_leverage() {
+  if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Usage: bybit_set_leverage <symbol> <leverage_value>"
+    echo "Example: bybit_set_leverage BTC/USDT 20"
+    return 1
+  fi
+  _ccxt_bybit_python "
+symbol = '$1'
+leverage = int('$2') # Ensure leverage is an integer
+try:
+    exchange.set_leverage(leverage, symbol)
+    print(f'Leverage set to {leverage}x for {symbol}')
+except Exception as e:
+    print(f'Error setting leverage for {symbol}: {e}')
+  "
+}
+
+# 5. Get All Markets
+bybit_markets() {
+  _ccxt_bybit_python "
+try:
+    markets = exchange.load_markets()
+    print('Bybit Markets:')
+    for symbol, market in markets.items():
+        print(f'  {symbol} - Type: {market['type']},  Quote: {market['quote']}, Base: {market['base']}')
+except Exception as e:
+    print(f'Error fetching markets: {e}')
+  "
+}
+
+# 6. Get Tickers for all Markets (Can be verbose)
+bybit_tickers() {
+  _ccxt_bybit_python "
+try:
+    tickers = exchange.fetch_tickers()
+    print('Bybit Tickers:')
+    for symbol, ticker in tickers.items():
+        print(f'  {symbol}: Bid: {ticker['bid']}, Ask: {ticker['ask']}, Last: {ticker['last']}, Volume: {ticker['baseVolume']}')
+except Exception as e:
+    print(f'Error fetching tickers: {e}')
+  "
+}
+
+# 7. Get Ticker for a Specific Symbol
+bybit_ticker() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_ticker <symbol>"
+    echo "Example: bybit_ticker BTC/USDT"
+    return 1
+  fi
+  _ccxt_bybit_python "
+symbol = '$1'
+try:
+    ticker = exchange.fetch_ticker(symbol)
+    print(f'Ticker for {symbol}:')
+    print(f'  Bid: {ticker['bid']}, Ask: {ticker['ask']}, Last: {ticker['last']}, Volume: {ticker['baseVolume']}, High: {ticker['high']}, Low: {ticker['low']}')
+except Exception as e:
+    print(f'Error fetching ticker for {symbol}: {e}')
+  "
+}
+
+# 8. Get Order Book for a Symbol (Default limit 10)
+bybit_orderbook() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_orderbook <symbol> [limit=10]"
+    echo "Example: bybit_orderbook BTC/USDT 20"
+    return 1
+  fi
+  limit=${2:-10} # Default limit is 10 if not provided
+  _ccxt_bybit_python "
+symbol = '$1'
+limit = int('$limit')
+try:
+    orderbook = exchange.fetch_order_book(symbol, limit=limit)
+    print(f'Order Book for {symbol} (Limit: {limit}):')
+    print('  Asks:')
+    for price, amount in orderbook['asks'][:5]: # Show top 5 asks
+        print(f'    Price: {price}, Amount: {amount}')
+    print('  Bids:')
+    for price, amount in orderbook['bids'][:5]: # Show top 5 bids
+        print(f'    Price: {price}, Amount: {amount}')
+except Exception as e:
+    print(f'Error fetching order book for {symbol}: {e}')
+  "
+}
+
+# 9. Get Recent Trades for a Symbol (Default limit 20)
+bybit_trades() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_trades <symbol> [limit=20]"
+    echo "Example: bybit_trades BTC/USDT 50"
+    return 1
+  fi
+  limit=${2:-20} # Default limit is 20 if not provided
+  _ccxt_bybit_python "
+symbol = '$1'
+limit = int('$limit')
+try:
+    trades = exchange.fetch_trades(symbol, limit=limit)
+    print(f'Recent Trades for {symbol} (Limit: {limit}):')
+    for trade in trades:
+        print(f'  ID: {trade['id']}, Timestamp: {trade['datetime']}, Side: {trade['side']}, Price: {trade['price']}, Amount: {trade['amount']}')
+except Exception as e:
+    print(f'Error fetching trades for {symbol}: {e}')
+  "
+}
+
+# 10. Get OHLCV Data (Candlesticks - Default timeframe 1h, limit 20)
+bybit_ohlcv() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_ohlcv <symbol> [timeframe=1h] [limit=20]"
+    echo "Example: bybit_ohlcv BTC/USDT 5m 100"
+    return 1
+  fi
+  timeframe=${2:-'1h'} # Default timeframe is 1h if not provided
+  limit=${3:-20}      # Default limit is 20 if not provided
+  _ccxt_bybit_python "
+symbol = '$1'
+timeframe = '$timeframe'
+limit = int('$limit')
+try:
+    ohlcv = exchange.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
+    print(f'OHLCV Data for {symbol} ({timeframe}, Limit: {limit}):')
+    for candle in ohlcv:
+        print(f'  Timestamp: {exchange.iso8601(candle[0])}, Open: {candle[1]}, High: {candle[2]}, Low: {candle[3]}, Close: {candle[4]}, Volume: {candle[5]}')
+except Exception as e:
+    print(f'Error fetching OHLCV data for {symbol}: {e}')
+  "
+}
+
+# 11. Create Market Buy Order
+bybit_create_market_buy_order() {
+  if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Usage: bybit_create_market_buy_order <symbol> <amount>"
+    echo "Example: bybit_create_market_buy_order BTC/USDT 0.01"
+    return 1
+  fi
+  _ccxt_bybit_python "
+symbol = '$1'
+amount = float('$2')
+try:
+    order = exchange.create_market_buy_order(symbol, amount)
+    print('Market Buy Order Created:')
+    print(order)
+except Exception as e:
+    print(f'Error creating market buy order: {e}')
+  "
+}
+
+# 12. Create Market Sell Order
+bybit_create_market_sell_order() {
+  if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Usage: bybit_create_market_sell_order <symbol> <amount>"
+    echo "Example: bybit_create_market_sell_order BTC/USDT 0.01"
+    return 1
+  fi
+  _ccxt_bybit_python "
+symbol = '$1'
+amount = float('$2')
+try:
+    order = exchange.create_market_sell_order(symbol, amount)
+    print('Market Sell Order Created:')
+    print(order)
+except Exception as e:
+    print(f'Error creating market sell order: {e}')
+  "
+}
+
+# 13. Create Limit Buy Order
+bybit_create_limit_buy_order() {
+  if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+    echo "Usage: bybit_create_limit_buy_order <symbol> <amount> <price>"
+    echo "Example: bybit_create_limit_buy_order BTC/USDT 0.01 25000"
+    return 1
+  fi
+  _ccxt_bybit_python "
+symbol = '$1'
+amount = float('$2')
+price = float('$3')
+try:
+    order = exchange.create_limit_buy_order(symbol, amount, price)
+    print('Limit Buy Order Created:')
+    print(order)
+except Exception as e:
+    print(f'Error creating limit buy order: {e}')
+  "
+}
+
+# 14. Create Limit Sell Order
+bybit_create_limit_sell_order() {
+  if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+    echo "Usage: bybit_create_limit_sell_order <symbol> <amount> <price>"
+    echo "Example: bybit_create_limit_sell_order BTC/USDT 0.01 26000"
+    return 1
+  fi
+  _ccxt_bybit_python "
+symbol = '$1'
+amount = float('$2')
+price = float('$3')
+try:
+    order = exchange.create_limit_sell_order(symbol, amount, price)
+    print('Limit Sell Order Created:')
+    print(order)
+except Exception as e:
+    print(f'Error creating limit sell order: {e}')
+  "
+}
+
+# 15. Cancel Order (Requires order ID and symbol)
+bybit_cancel_order() {
+  if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Usage: bybit_cancel_order <order_id> <symbol>"
+    echo "Example: bybit_cancel_order 123456789 BTC/USDT"
+    return 1
+  fi
+  _ccxt_bybit_python "
+order_id = '$1'
+symbol = '$2'
+try:
+    result = exchange.cancel_order(order_id, symbol)
+    print(f'Order {order_id} cancelled:')
+    print(result)
+except Exception as e:
+    print(f'Error cancelling order {order_id}: {e}')
+  "
+}
+
+# 16. Cancel All Open Orders (Requires symbol)
+bybit_cancel_all_orders() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_cancel_all_orders <symbol>"
+    echo "Example: bybit_cancel_all_orders BTC/USDT"
+    return 1
+  fi
+  _ccxt_bybit_python "
+symbol = '$1'
+try:
+    result = exchange.cancel_all_orders(symbol)
+    print(f'All open orders for {symbol} cancelled:')
+    print(result)
+except Exception as e:
+    print(f'Error cancelling all orders for {symbol}: {e}')
+  "
+}
+
+# 17. Fetch Order (Requires order ID and symbol)
+bybit_fetch_order() {
+  if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Usage: bybit_fetch_order <order_id> <symbol>"
+    echo "Example: bybit_fetch_order 123456789 BTC/USDT"
+    return 1
+  fi
+  _ccxt_bybit_python "
+order_id = '$1'
+symbol = '$2'
+try:
+    order = exchange.fetch_order(order_id, symbol)
+    print(f'Order {order_id} details:')
+    print(order)
+except Exception as e:
+    print(f'Error fetching order {order_id}: {e}')
+  "
+}
+
+# 18. Fetch Open Orders (Requires symbol)
+bybit_fetch_orders() { # Renamed from fetch_open_orders as fetch_orders is more general
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_fetch_orders <symbol>"
+    echo "Example: bybit_fetch_orders BTC/USDT"
+    return 1
+  fi
+  _ccxt_bybit_python "
+symbol = '$1'
+try:
+    orders = exchange.fetch_orders(symbol) # fetch_orders without status arg fetches open orders by default on many exchanges
+    if orders:
+        print(f'Open Orders for {symbol}:')
+        for order in orders:
+            print(f'  ID: {order['id']}, Status: {order['status']}, Type: {order['type']}, Side: {order['side']}, Amount: {order['amount']}, Price: {order['price']}')
+    else:
+        print(f'No open orders for {symbol}.')
+except Exception as e:
+    print(f'Error fetching open orders for {symbol}: {e}')
+  "
+}
+
+
+# 19. Fetch Closed Orders (Requires symbol, optional limit)
+bybit_fetch_closed_orders() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_fetch_closed_orders <symbol> [limit=10]"
+    echo "Example: bybit_fetch_closed_orders BTC/USDT 5"
+    return 1
+  fi
+  limit=${2:-10} # Default limit is 10 if not provided
+  _ccxt_bybit_python "
+symbol = '$1'
+limit = int('$limit')
+try:
+    orders = exchange.fetch_closed_orders(symbol, limit=limit) # Some exchanges might require status='closed'
+    if orders:
+        print(f'Last {limit} Closed Orders for {symbol}:')
+        for order in orders:
+            print(f'  ID: {order['id']}, Status: {order['status']}, Type: {order['type']}, Side: {order['side']}, Amount: {order['amount']}, Price: {order['price']}, Filled: {order['filled']}, Remaining: {order['remaining']}')
+    else:
+        print(f'No closed orders found for {symbol}.')
+except Exception as e:
+    print(f'Error fetching closed orders for {symbol}: {e}')
+  "
+}
+
+
+# 20. Fetch My Trades (Requires symbol, optional limit)
+bybit_fetch_my_trades() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_fetch_my_trades <symbol> [limit=10]"
+    echo "Example: bybit_fetch_my_trades BTC/USDT 20"
+    return 1
+  fi
+  symbol="$1"
+  limit=${2:-10} # Default limit is 10 if not provided
+  _ccxt_bybit_python "
+symbol = '$symbol'
+limit = int('$limit')
+try:
+    trades = exchange.fetch_my_trades(symbol, limit=limit)
+    if trades:
+        print(f'Last {limit} Trades for {symbol}:')
+        for trade in trades:
+            print(f'  ID: {trade['id']}, Timestamp: {exchange.iso8601(trade['timestamp'])}, Side: {trade['side']}, Price: {trade['price']}, Amount: {trade['amount']}, Cost: {trade['cost']}, Fee: {trade['fee']}')
+    else:
+        print(f'No trades found for {symbol}.')
+except Exception as e:
+    print(f'Error fetching trades for {symbol}: {e}')
+  "
+}
+
+# --- More CCXT Bybit Functions (Functions 21-40) ---
+
+# 21. Get Wallet Balance (Specific Currency - e.g., USDT)
+bybit_wallet_balance() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_wallet_balance <currency>"
+    echo "Example: bybit_wallet_balance USDT"
+    return 1
+  fi
+  _ccxt_bybit_python "
+currency = '$1'
+try:
+    balance = exchange.fetch_balance({ 'currency': currency })
+    print(f'Wallet Balance for {currency}:')
+    if balance and 'total' in balance:
+        print(f'  Total: {balance['total'][currency]}, Free: {balance['free'][currency]}, Used: {balance['used'][currency]}')
+    else:
+        print(f'Could not retrieve balance for {currency} or empty balance.')
+except Exception as e:
+    print(f'Error fetching wallet balance for {currency}: {e}')
+  "
+}
+
+# 22. Get Order History (All Orders, Requires symbol, optional limit)
+bybit_order_history() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_order_history <symbol> [limit=10]"
+    echo "Example: bybit_order_history BTC/USDT 20"
+    return 1
+  fi
+  symbol="$1"
+  limit=${2:-10} # Default limit is 10 if not provided
+  _ccxt_bybit_python "
+symbol = '$symbol'
+limit = int('$limit')
+try:
+    orders = exchange.fetch_orders(symbol, limit=limit) # fetch_orders without status might fetch all or open orders, check CCXT docs for Bybit
+    if orders:
+        print(f'Last {limit} Orders for {symbol} (History):')
+        for order in orders:
+            print(f'  ID: {order['id']}, Status: {order['status']}, Type: {order['type']}, Side: {order['side']}, Amount: {order['amount']}, Price: {order['price']}, Filled: {order['filled']}, Remaining: {order['remaining']}, Datetime: {order['datetime']}')
+    else:
+        print(f'No order history found for {symbol}.')
+except Exception as e:
+    print(f'Error fetching order history for {symbol}: {e}')
+  "
+}
+
+
+# 23. Get Funding Rate History (Requires symbol, optional limit)
+bybit_funding_rates() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_funding_rates <symbol> [limit=10]"
+    echo "Example: bybit_funding_rates BTC/USDT 5"
+    return 1
+  fi
+  symbol="$1"
+  limit=${2:-5} # Default limit is 5, funding rates can be frequent
+  _ccxt_bybit_python "
+symbol = '$symbol'
+limit = int('$limit')
+try:
+    funding_rates = exchange.fetch_funding_rates(symbol, limit=limit)
+    if funding_rates:
+        print(f'Last {limit} Funding Rates for {symbol}:')
+        for rate in funding_rates:
+            print(f'  Timestamp: {exchange.iso8601(rate['timestamp'])}, Rate: {rate['fundingRate']}')
+    else:
+        print(f'No funding rate history found for {symbol}.')
+except Exception as e:
+    print(f'Error fetching funding rates for {symbol}: {e}')
+  "
+}
+
+# 24. Get Last Funding Rate (Requires symbol)
+bybit_last_funding_rate() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_last_funding_rate <symbol>"
+    echo "Example: bybit_last_funding_rate BTC/USDT"
+    return 1
+  fi
+  symbol="$1"
+  _ccxt_bybit_python "
+symbol = '$symbol'
+try:
+    funding_rate = exchange.fetch_funding_rate(symbol)
+    print(f'Last Funding Rate for {symbol}: {funding_rate['fundingRate']}, Timestamp: {exchange.iso8601(funding_rate['timestamp'])}')
+except Exception as e:
+    print(f'Error fetching last funding rate for {symbol}: {e}')
+  "
+}
+
+
+# 25. Create Stop Loss Order (Market Stop Loss - Requires symbol, amount, stopPrice)
+bybit_create_market_stop_loss() {
+  if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+    echo "Usage: bybit_create_market_stop_loss <symbol> <amount> <stopPrice>"
+    echo "Example: bybit_create_market_stop_loss BTC/USDT 0.01 20000"
+    return 1
+  fi
+  _ccxt_bybit_python "
+symbol = '$1'
+amount = float('$2')
+stopPrice = float('$3')
+try:
+    order = exchange.create_order(symbol, 'market', 'sell', amount, None, params={'stopLossPrice': stopPrice, 'triggerPrice': stopPrice, 'triggerType': 'LastPrice'}) # 'sell' for stop loss on buy position, adjust 'side' if needed
+    print('Market Stop Loss Order Created:')
+    print(order)
+except Exception as e:
+    print(f'Error creating market stop loss order: {e}')
+  "
+}
+
+# 26. Create Take Profit Order (Market Take Profit - Requires symbol, amount, takeProfitPrice)
+bybit_create_market_take_profit() {
+  if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+    echo "Usage: bybit_create_market_take_profit <symbol> <amount> <takeProfitPrice>"
+    echo "Example: bybit_create_market_take_profit BTC/USDT 0.01 30000"
+    return 1
+  fi
+  _ccxt_bybit_python "
+symbol = '$1'
+amount = float('$2')
+takeProfitPrice = float('$3')
+try:
+    order = exchange.create_order(symbol, 'market', 'sell', amount, None, params={'takeProfitPrice': takeProfitPrice, 'triggerPrice': takeProfitPrice, 'triggerType': 'LastPrice'}) # 'sell' for take profit on buy position, adjust 'side' if needed
+    print('Market Take Profit Order Created:')
+    print(order)
+except Exception as e:
+    print(f'Error creating market take profit order: {e}')
+  "
+}
+
+# 27. Set Position Mode (Hedge Mode or One-Way Mode - 'Hedge' or 'OneWay')
+bybit_set_position_mode() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_set_position_mode <mode>"
+    echo "Mode should be 'Hedge' or 'OneWay'"
+    echo "Example: bybit_set_position_mode Hedge"
+    return 1
+  fi
+  mode="$1"
+  _ccxt_bybit_python "
+mode = '$mode'
+try:
+    if mode.lower() == 'hedge':
+        exchange.set_position_mode('hedged') # or 'hedge' - check CCXT docs for Bybit
+        print('Position mode set to Hedge Mode')
+    elif mode.lower() == 'oneway':
+        exchange.set_position_mode('one-way') # or 'one_way' or 'oneway' - check CCXT docs for Bybit
+        print('Position mode set to One-Way Mode')
+    else:
+        print('Invalid position mode. Use \'Hedge\' or \'OneWay\'.')
+        exit(1)
+except Exception as e:
+    print(f'Error setting position mode: {e}')
+  "
+}
+
+
+# 28. Get Position Mode
+bybit_get_position_mode() {
+  _ccxt_bybit_python "
+try:
+    position_mode = exchange.get_position_mode() # or fetch_position_mode, check CCXT docs for Bybit
+    print(f'Current Position Mode: {position_mode}') # Output might need parsing based on actual API response
+except Exception as e:
+    print(f'Error fetching position mode: {e}')
+  "
+}
+
+
+# 29. Get Account Leverage Settings (Might be general account leverage, or per symbol)
+bybit_account_leverage() {
+  _ccxt_bybit_python "
+try:
+    leverage_settings = exchange.fetch_leverage() # Or fetch_account_leverage, check CCXT docs for Bybit
+    print('Account Leverage Settings:')
+    print(leverage_settings) # Output might need parsing based on actual API response
+except Exception as e:
+    print(f'Error fetching account leverage settings: {e}')
+  "
+}
+
+# 30. Set Margin Mode (Isolated or Cross - Requires symbol, 'isolated' or 'cross')
+bybit_set_margin_mode() {
+  if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Usage: bybit_set_margin_mode <symbol> <mode>"
+    echo "Mode should be 'isolated' or 'cross'"
+    echo "Example: bybit_set_margin_mode BTC/USDT isolated"
+    return 1
+  fi
+  symbol="$1"
+  mode="$2"
+  _ccxt_bybit_python "
+symbol = '$symbol'
+mode = '$mode'
+try:
+    if mode.lower() == 'isolated':
+        exchange.set_margin_mode('isolated', symbol) # or 'ISOLATED', check CCXT docs for Bybit
+        print(f'Margin mode set to Isolated for {symbol}')
+    elif mode.lower() == 'cross':
+        exchange.set_margin_mode('cross', symbol) # or 'CROSSED' or 'CROSS', check CCXT docs for Bybit
+        print(f'Margin mode set to Cross for {symbol}')
+    else:
+        print('Invalid margin mode. Use \'isolated\' or \'cross\'.')
+        exit(1)
+except Exception as e:
+    print(f'Error setting margin mode for {symbol}: {e}')
+  "
+}
+
+
+# 31. Get Margin Mode (Requires symbol)
+bybit_get_margin_mode() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_get_margin_mode <symbol>"
+    echo "Example: bybit_get_margin_mode BTC/USDT"
+    return 1
+  fi
+  symbol="$1"
+  _ccxt_bybit_python "
+symbol = '$symbol'
+try:
+    margin_mode = exchange.get_margin_mode(symbol) # or fetch_margin_mode, check CCXT docs for Bybit
+    print(f'Margin Mode for {symbol}: {margin_mode}') # Output might need parsing based on actual API response
+except Exception as e:
+    print(f'Error fetching margin mode for {symbol}: {e}')
+  "
+}
+
+# 32. Get Funding Payments History (Optional symbol, optional since timestamp)
+bybit_funding_payments() {
+  symbol="${1:-None}" # Symbol is optional
+  since="${2:-None}"  # Since timestamp is optional
+  _ccxt_bybit_python "
+symbol = '$symbol' if '$symbol' != 'None' else None
+since = int('$since') * 1000 if '$since' != 'None' else None # Convert seconds to milliseconds for CCXT timestamps
+
+try:
+    params = {}
+    if symbol:
+        params['symbol'] = symbol
+    if since:
+        params['since'] = since
+
+    funding_payments = exchange.fetch_funding_payments(symbol=symbol, since=since) # or fetch_funding_history, check CCXT docs for Bybit
+    if funding_payments:
+        print('Funding Payments History:')
+        for payment in funding_payments:
+            print(f'  Timestamp: {exchange.iso8601(payment['timestamp'])}, Symbol: {payment['symbol']}, Amount: {payment['amount']}, Type: {payment['type']}') # Type might be 'funding' or similar
+    else:
+        print('No funding payments history found.')
+except Exception as e:
+    print(f'Error fetching funding payments history: {e}')
+  "
+}
+
+# 33. Set Order TP/SL (Modify existing order with Take Profit/Stop Loss - Requires order ID, symbol, takeProfitPrice, stopLossPrice)
+bybit_set_order_tp_sl() {
+  if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+    echo "Usage: bybit_set_order_tp_sl <order_id> <symbol> <takeProfitPrice> <stopLossPrice>"
+    echo "Example: bybit_set_order_tp_sl 123456789 BTC/USDT 31000 24000"
+    return 1
+  fi
+  order_id="$1"
+  symbol="$2"
+  takeProfitPrice="$3"
+  stopLossPrice="$4"
+
+  _ccxt_bybit_python "
+order_id = '$order_id'
+symbol = '$symbol'
+takeProfitPrice = float('$takeProfitPrice')
+stopLossPrice = float('$stopLossPrice')
+
+try:
+    params = {
+        'takeProfit': takeProfitPrice,
+        'stopLoss': stopLossPrice,
+        'triggerPrice': takeProfitPrice, # You might need to adjust triggerPrice/triggerType based on Bybit API and CCXT docs
+        'triggerType': 'LastPrice', # Or 'MarkPrice', etc. - check Bybit docs
+        'stopTriggerPrice': stopLossPrice,
+        'stopTriggerType': 'LastPrice',
+    }
+    updated_order = exchange.edit_order(order_id, symbol, params=params) # or update_order, check CCXT docs for Bybit
+    print(f'Order {order_id} TP/SL updated:')
+    print(updated_order)
+except Exception as e:
+    print(f'Error setting TP/SL for order {order_id}: {e}')
+  "
+}
+
+# 34. Close Position (Market Close - Requires symbol)
+bybit_close_position() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_close_position <symbol>"
+    echo "Example: bybit_close_position BTC/USDT"
+    return 1
+  fi
+  symbol="$1"
+  _ccxt_bybit_python "
+symbol = '$symbol'
+try:
+    position = exchange.fetch_position(symbol) # Get position details to know the amount to close
+    if position and position['side']:
+        amount_to_close = abs(position['amount']) # Close the entire position amount
+        side_to_close = 'sell' if position['side'] == 'long' else 'buy' # Reverse side to close
+        order = exchange.create_market_order(symbol, side_to_close, amount_to_close) # Or create_market_sell_order/create_market_buy_order directly
+        print(f'Position for {symbol} closed with Market order:')
+        print(order)
+    else:
+        print(f'No open position found for {symbol} to close.')
+except Exception as e:
+    print(f'Error closing position for {symbol}: {e}')
+  "
+}
+
+# 35. Reduce Position (Market Reduce Only Order - Requires symbol, amount, side 'buy' or 'sell')
+bybit_reduce_position() {
+  if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+    echo "Usage: bybit_reduce_position <symbol> <amount> <side>"
+    echo "Side should be 'buy' or 'sell' to reduce position"
+    echo "Example: bybit_reduce_position BTC/USDT 0.005 sell" # Reduce long position by selling
+    return 1
+  fi
+  symbol="$1"
+  amount="$2"
+  side="$3"
+  _ccxt_bybit_python "
+symbol = '$symbol'
+amount = float('$amount')
+side = '$side'
+
+try:
+    if side.lower() not in ['buy', 'sell']:
+        print('Invalid side. Use \'buy\' or \'sell\' to reduce position.')
+        exit(1)
+
+    order = exchange.create_market_order(symbol, side, amount, params={'reduceOnly': True})
+    print(f'Market order to reduce position for {symbol} ({side} {amount}) created:')
+    print(order)
+except Exception as e:
+    print(f'Error creating reduce position order for {symbol}: {e}')
+  "
+}
+
+
+# 36. Get Leverage Brackets (Requires symbol - for tiered margin/leverage)
+bybit_leverage_brackets() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_leverage_brackets <symbol>"
+    echo "Example: bybit_leverage_brackets BTC/USDT"
+    return 1
+  fi
+  symbol="$1"
+  _ccxt_bybit_python "
+symbol = '$symbol'
+try:
+    leverage_brackets = exchange.fetch_leverage_tiers(symbol) # or fetch_leverage_brackets, check CCXT docs for Bybit
+    if leverage_brackets:
+        print(f'Leverage Brackets for {symbol}:')
+        for bracket in leverage_brackets:
+            print(f'  Tier: {bracket['tier']}, Max Leverage: {bracket['maxLeverage']}, Min Notional: {bracket['minNotional']}, Max Notional: {bracket['maxNotional']}') # Adapt output based on actual bracket structure
+    else:
+        print(f'No leverage bracket information found for {symbol}.')
+except Exception as e:
+    print(f'Error fetching leverage brackets for {symbol}: {e}')
+  "
+}
+
+
+# 37. Get Positions Risk Limit (Requires symbol)
+bybit_position_risk_limit() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_position_risk_limit <symbol>"
+    echo "Example: bybit_position_risk_limit BTC/USDT"
+    return 1
+  fi
+  symbol="$1"
+  _ccxt_bybit_python "
+symbol = '$symbol'
+try:
+    risk_limit = exchange.fetch_position_risk_limit(symbol) # Or fetch_position_limits, check CCXT docs for Bybit
+    print(f'Position Risk Limit for {symbol}:')
+    print(risk_limit) # Output format depends on API response, might need parsing
+except Exception as e:
+    print(f'Error fetching position risk limit for {symbol}: {e}')
+  "
+}
+
+# 38. Set Position Risk Limit (Requires symbol, riskLimitValue - check Bybit API for valid values)
+bybit_set_position_risk_limit() {
+  if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Usage: bybit_set_position_risk_limit <symbol> <riskLimitValue>"
+    echo "Check Bybit API docs for valid riskLimitValue for the symbol"
+    echo "Example: bybit_set_position_risk_limit BTC/USDT 1" # Example value, check actual values
+    return 1
+  fi
+  symbol="$1"
+  risk_limit_value="$2"
+  _ccxt_bybit_python "
+symbol = '$symbol'
+risk_limit_value = '$risk_limit_value'
+try:
+    exchange.set_position_risk_limit(symbol, risk_limit_value) # Or set_position_limits, check CCXT docs for Bybit
+    print(f'Position Risk Limit set to {risk_limit_value} for {symbol}')
+except Exception as e:
+    print(f'Error setting position risk limit for {symbol}: {e}')
+  "
+}
+
+
+# 39. Get Server Time (Exchange Time)
+bybit_server_time() {
+  _ccxt_bybit_python "
+try:
+    server_time_ms = exchange.fetch_time()
+    server_time_iso = exchange.iso8601(server_time_ms)
+    print(f'Bybit Server Time (UTC): {server_time_iso}')
+except Exception as e:
+    print(f'Error fetching server time: {e}')
+  "
+}
+
+# 40. Fetch Deposit Address (Requires currency - e.g., USDT)
+bybit_deposit_address() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_deposit_address <currency>"
+    echo "Example: bybit_deposit_address USDT"
+    return 1
+  fi
+  currency="$1"
+  _ccxt_bybit_python "
+currency = '$currency'
+try:
+    deposit_address_data = exchange.fetch_deposit_address(currency)
+    if deposit_address_data and 'address' in deposit_address_data:
+        print(f'Deposit Address for {currency}:')
+        print(f'  Address: {deposit_address_data['address']}')
+        if 'tag' in deposit_address_data and deposit_address_data['tag']:
+            print(f'  Tag/Memo: {deposit_address_data['tag']}') # Some currencies require a tag/memo
+    else:
+        print(f'Could not retrieve deposit address for {currency}.')
+except Exception as e:
+    print(f'Error fetching deposit address for {currency}: {e}')
+  "
+}
+
+# --- Even More CCXT Bybit Functions (Functions 41-60) ---
+
+# 41. Get Open Interest (Requires symbol)
+bybit_open_interest() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_open_interest <symbol>"
+    echo "Example: bybit_open_interest BTC/USDT"
+    return 1
+  fi
+  symbol="$1"
+  _ccxt_bybit_python "
+symbol = '$symbol'
+try:
+    open_interest = exchange.fetch_open_interest(symbol) # or fetch_oi, check CCXT docs
+    print(f'Open Interest for {symbol}: {open_interest['openInterestAmount']}, Value: {open_interest['openInterestValue']}, Timestamp: {exchange.iso8601(open_interest['timestamp'])}') # Adjust output based on actual response structure
+except Exception as e:
+    print(f'Error fetching open interest for {symbol}: {e}')
+  "
+}
+
+# 42. Get Long/Short Ratio (Requires symbol, timeframe - e.g., '1h', '4h', '1d')
+bybit_long_short_ratio() {
+  if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Usage: bybit_long_short_ratio <symbol> <timeframe>"
+    echo "Timeframe examples: 1h, 4h, 1d"
+    echo "Example: bybit_long_short_ratio BTC/USDT 1h"
+    return 1
+  fi
+  symbol="$1"
+  timeframe="$2"
+  _ccxt_bybit_python "
+symbol = '$symbol'
+timeframe = '$timeframe'
+try:
+    long_short_ratio = exchange.fetch_long_short_ratio(symbol, timeframe=timeframe) # Or fetch_global_long_short_account_ratio, check CCXT and Bybit docs - might need specific Bybit API endpoint
+    if long_short_ratio:
+        print(f'Long/Short Ratio for {symbol} ({timeframe}):')
+        print(long_short_ratio) # Output structure depends on API response - might need parsing for longRatio, shortRatio
+    else:
+        print(f'Could not retrieve long/short ratio for {symbol} ({timeframe}).')
+except Exception as e:
+    print(f'Error fetching long/short ratio for {symbol} ({timeframe}): {e}')
+  "
+}
+
+# 43. Get Insurance Fund Balance
+bybit_insurance_fund() {
+  _ccxt_bybit_python "
+try:
+    insurance_fund = exchange.fetch_insurance_fund_balance() # Or fetch_insurance, check CCXT and Bybit docs
+    if insurance_fund:
+        print('Bybit Insurance Fund Balance:')
+        for entry in insurance_fund: # Assuming it returns a list of balances
+            print(f'  Currency: {entry['currency']}, Balance: {entry['balance']}, Timestamp: {exchange.iso8601(entry['timestamp'])}') # Adjust output based on actual response structure
+    else:
+        print('Could not retrieve Bybit insurance fund balance.')
+except Exception as e:
+    print(f'Error fetching insurance fund balance: {e}')
+  "
+}
+
+# 44. Get Liquidations (Recent Liquidations, Optional symbol, optional limit)
+bybit_liquidations() {
+  symbol="${1:-None}" # Symbol is optional
+  limit="${2:-10}"  # Limit is optional
+  _ccxt_bybit_python "
+symbol = '$symbol' if '$symbol' != 'None' else None
+limit = int('$limit')
+
+try:
+    liquidations = exchange.fetch_liquidations(symbol=symbol, limit=limit) # Or fetch_my_liquidations, check CCXT and Bybit docs for endpoint
+    if liquidations:
+        print(f'Last {limit} Liquidations { "for " + symbol if symbol else ""}:')
+        for liquidation in liquidations:
+            print(f'  Timestamp: {exchange.iso8601(liquidation['timestamp'])}, Symbol: {liquidation['symbol']}, Side: {liquidation['side']}, Price: {liquidation['price']}, Amount: {liquidation['amount']}') # Adjust output based on actual liquidation structure
+    else:
+        print(f'No recent liquidations found { "for " + symbol if symbol else ""}.')
+except Exception as e:
+    print(f'Error fetching liquidations { "for " + symbol if symbol else ""}: {e}')
+  "
+}
+
+# 45. Create Post-Only Limit Order (Limit Maker Order)
+bybit_create_limit_maker_order() {
+  if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+    echo "Usage: bybit_create_limit_maker_order <side> <symbol> <amount> <price>"
+    echo "Side: buy or sell. Example: bybit_create_limit_maker_order buy BTC/USDT 0.01 27000"
+    return 1
+  fi
+  side="$1"
+  symbol="$2"
+  amount="$3"
+  price="$4"
+  _ccxt_bybit_python "
+side = '$side'
+symbol = '$symbol'
+amount = float('$amount')
+price = float('$price')
+
+try:
+    if side.lower() not in ['buy', 'sell']:
+        print('Invalid side. Use \'buy\' or \'sell\'.')
+        exit(1)
+    order = exchange.create_limit_order(symbol, side, amount, price, params={'postOnly': True}) # Or create_order with 'post_only' param, check CCXT docs
+    print(f'Post-Only Limit {side.capitalize()} Order Created:')
+    print(order)
+except Exception as e:
+    print(f'Error creating post-only limit {side} order: {e}')
+  "
+}
+
+# 46. Create Reduce-Only Limit Order (Limit order to reduce position)
+bybit_create_limit_reduce_order() {
+  if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+    echo "Usage: bybit_create_limit_reduce_order <side> <symbol> <amount> <price>"
+    echo "Side: buy or sell. Example: bybit_create_limit_reduce_order sell BTC/USDT 0.01 26500" # Sell to reduce long position
+    return 1
+  fi
+  side="$1"
+  symbol="$2"
+  amount="$3"
+  price="$4"
+  _ccxt_bybit_python "
+side = '$side'
+symbol = '$symbol'
+amount = float('$amount')
+price = float('$price')
+
+try:
+    if side.lower() not in ['buy', 'sell']:
+        print('Invalid side. Use \'buy\' or \'sell\'.')
+        exit(1)
+    order = exchange.create_limit_order(symbol, side, amount, price, params={'reduceOnly': True}) # Or create_order with 'reduce_only' param, check CCXT docs
+    print(f'Reduce-Only Limit {side.capitalize()} Order Created:')
+    print(order)
+except Exception as e:
+    print(f'Error creating reduce-only limit {side} order: {e}')
+  "
+}
+
+# 47. Get Orderbook Top Bid/Ask (Quickly get best bid and ask prices)
+bybit_orderbook_top() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_orderbook_top <symbol>"
+    echo "Example: bybit_orderbook_top BTC/USDT"
+    return 1
+  fi
+  symbol="$1"
+  _ccxt_bybit_python "
+symbol = '$symbol'
+try:
+    orderbook = exchange.fetch_order_book(symbol, limit=1) # Fetch only top level
+    if orderbook and orderbook['bids'] and orderbook['asks']:
+        best_bid = orderbook['bids'][0][0]
+        best_ask = orderbook['asks'][0][0]
+        print(f'Top Bid for {symbol}: {best_bid}, Top Ask: {best_ask}')
+    else:
+        print(f'Could not retrieve top bid/ask for {symbol}.')
+except Exception as e:
+    print(f'Error fetching top bid/ask for {symbol}: {e}')
+  "
+}
+
+# 48. Get Account Positions (All Positions, including closed - might be limited history)
+bybit_all_positions() {
+  _ccxt_bybit_python "
+try:
+    positions = exchange.fetch_positions(params={'paginate': True}) # Or fetch_closed_positions, check CCXT and Bybit docs, pagination might be needed for history
+    if positions:
+        print('All Positions (History - might be limited):')
+        for pos in positions:
+            print(f'  Symbol: {pos['symbol']}, Side: {pos['side']}, Amount: {pos['amount']}, Entry Price: {pos['entryPrice']}, Status: {pos['status']}') # Status might indicate open/closed, check response structure
+    else:
+        print('No position history found.')
+except Exception as e:
+    print(f'Error fetching all positions: {e}')
+  "
+}
+
+# 49. Get Position Margin (Requires symbol)
+bybit_position_margin() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_position_margin <symbol>"
+    echo "Example: bybit_position_margin BTC/USDT"
+    return 1
+  fi
+  symbol="$1"
+  _ccxt_bybit_python "
+symbol = '$symbol'
+try:
+    position = exchange.fetch_position(symbol)
+    if position:
+        print(f'Position Margin for {symbol}: {position['margin']}') # Or position['initialMargin'], position['maintenanceMargin'], check response structure
+    else:
+        print(f'No position found for {symbol}.')
+except Exception as e:
+    print(f'Error fetching position margin for {symbol}: {e}')
+  "
+}
+
+# 50. Add Position Margin (Requires symbol, amount to add - positive value)
+bybit_add_position_margin() {
+  if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Usage: bybit_add_position_margin <symbol> <amount>"
+    echo "Amount must be positive to add margin. Example: bybit_add_position_margin BTC/USDT 100" # Add 100 USDT margin
+    return 1
+  fi
+  symbol="$1"
+  amount="$2"
+  _ccxt_bybit_python "
+symbol = '$symbol'
+amount = float('$amount')
+
+if amount <= 0:
+    print('Amount to add margin must be positive.')
+    exit(1)
+
+try:
+    exchange.add_margin(symbol, amount) # Or set_margin, adjust_margin, check CCXT docs and Bybit API for correct function
+    print(f'Added {amount} margin to position for {symbol}')
+except Exception as e:
+    print(f'Error adding margin to position for {symbol}: {e}')
+  "
+}
+
+# 51. Reduce Position Margin (Requires symbol, amount to reduce - negative value, or positive for reduction amount)
+bybit_reduce_position_margin() {
+  if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Usage: bybit_reduce_position_margin <symbol> <amount>"
+    echo "Amount can be positive (amount to reduce) or negative (target margin level). Example: bybit_reduce_position_margin BTC/USDT 50" # Reduce by 50 USDT
+    return 1
+  fi
+  symbol="$1"
+  amount="$2"
+  _ccxt_bybit_python "
+symbol = '$symbol'
+amount = float('$amount')
+
+try:
+    exchange.reduce_margin(symbol, amount) # Or set_margin, adjust_margin, check CCXT docs and Bybit API for correct function. Amount might need to be negative depending on API
+    print(f'Reduced margin by {amount} for position in {symbol}')
+except Exception as e:
+    print(f'Error reducing margin for position in {symbol}: {e}')
+  "
+}
+
+# 52. Get Order Cost (Calculate order cost before placing - requires side, symbol, amount, price)
+bybit_order_cost() {
+  if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+    echo "Usage: bybit_order_cost <side> <symbol> <amount> <price>"
+    echo "Side: buy or sell. Example: bybit_order_cost buy BTC/USDT 0.01 27000"
+    return 1
+  fi
+  side="$1"
+  symbol="$2"
+  amount="$3"
+  price="$4"
+  _ccxt_bybit_python "
+side = '$side'
+symbol = '$symbol'
+amount = float('$amount')
+price = float('$price')
+
+try:
+    cost = amount * price # Basic cost calculation - might need to factor in fees/leverage for more accurate cost, depending on Bybit API capabilities in CCXT
+    print(f'Estimated cost for {side.capitalize()} {amount} {symbol} at {price}: {cost}') # Currency of cost depends on quote currency
+except Exception as e:
+    print(f'Error calculating order cost: {e}')
+  "
+}
+
+# 53. Get Account Positions Risk (Overall account risk metrics)
+bybit_account_risk() {
+  _ccxt_bybit_python "
+try:
+    account_risk = exchange.fetch_account_risk() # Or fetch_account, fetch_balance with risk metrics, check CCXT and Bybit docs for relevant endpoint
+    if account_risk:
+        print('Account Risk Metrics:')
+        print(account_risk) # Output structure depends on API response - might need parsing for metrics like margin ratio, risk level etc.
+    else:
+        print('Could not retrieve account risk metrics.')
+except Exception as e:
+    print(f'Error fetching account risk metrics: {e}')
+  "
+}
+
+# 54. Get Withdrawal History (Optional currency, optional limit)
+bybit_withdrawal_history() {
+  currency="${1:-None}" # Currency is optional
+  limit="${2:-10}"  # Limit is optional
+  _ccxt_bybit_python "
+currency = '$currency' if '$currency' != 'None' else None
+limit = int('$limit')
+
+try:
+    withdrawals = exchange.fetch_withdrawals(currency=currency, limit=limit) # Or fetch_withdrawal_history, check CCXT and Bybit docs for endpoint
+    if withdrawals:
+        print(f'Last {limit} Withdrawal History { "for " + currency if currency else ""}:')
+        for withdrawal in withdrawals:
+            print(f'  ID: {withdrawal['id']}, Timestamp: {exchange.iso8601(withdrawal['timestamp'])}, Currency: {withdrawal['currency']}, Amount: {withdrawal['amount']}, Status: {withdrawal['status']}, Fee: {withdrawal['fee']}') # Adjust output based on actual withdrawal structure
+    else:
+        print(f'No withdrawal history found { "for " + currency if currency else ""}.')
+except Exception as e:
+    print(f'Error fetching withdrawal history { "for " + currency if currency else ""}: {e}')
+  "
+}
+
+# 55. Withdraw Funds (Requires currency, address, amount, tag/memo if needed) - **USE WITH EXTREME CAUTION**
+bybit_withdraw() {
+  if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+    echo "Usage: bybit_withdraw <currency> <address> <amount> [tag/memo]"
+    echo "**USE WITH EXTREME CAUTION!** Double-check address and amount."
+    echo "Example (USDT TRC20 - no tag): bybit_withdraw USDT TRxxxxxxxxxxxxxxxxxxxxx 10"
+    echo "Example (XRP - with tag): bybit_withdraw XRP rxxxxxxxxxxxxxxxxxxxxx 10 123456789"
+    return 1
+  fi
+  currency="$1"
+  address="$2"
+  amount="$3"
+  tag="${4:-None}" # Tag/memo is optional
+  _ccxt_bybit_python "
+currency = '$currency'
+address = '$address'
+amount = float('$amount')
+tag = '$tag' if '$tag' != 'None' else None
+
+# **CRITICAL SECURITY WARNING:**
+# This function executes actual withdrawals.  Use with extreme caution and double-check all parameters.
+# Consider adding more security measures (e.g., confirmation prompts, withdrawal limits) for production use.
+
+try:
+    params = {}
+    if tag:
+        params['tag'] = tag # Or 'memo', check Bybit API for tag/memo parameter name
+    withdrawal = exchange.withdraw(currency, address, amount, tag=tag) # Or withdrawCoins, create_withdrawal, check CCXT and Bybit docs for correct function
+    print('Withdrawal request initiated:')
+    print(withdrawal) # Withdrawal response details - might include withdrawal ID
+except Exception as e:
+    print(f'Error initiating withdrawal: {e}')
+  "
+}
+
+# 56. Get Deposit History (Optional currency, optional limit)
+bybit_deposit_history() {
+  currency="${1:-None}" # Currency is optional
+  limit="${2:-10}"  # Limit is optional
+  _ccxt_bybit_python "
+currency = '$currency' if '$currency' != 'None' else None
+limit = int('$limit')
+
+try:
+    deposits = exchange.fetch_deposits(currency=currency, limit=limit) # Or fetch_deposit_history, check CCXT and Bybit docs for endpoint
+    if deposits:
+        print(f'Last {limit} Deposit History { "for " + currency if currency else ""}:')
+        for deposit in deposits:
+            print(f'  ID: {deposit['id']}, Timestamp: {exchange.iso8601(deposit['timestamp'])}, Currency: {deposit['currency']}, Amount: {deposit['amount']}, Status: {deposit['status']}, TxID: {deposit['txid']}') # Adjust output based on actual deposit structure
+    else:
+        print(f'No deposit history found { "for " + currency if currency else ""}.')
+except Exception as e:
+    print(f'Error fetching deposit history { "for " + currency if currency else ""}: {e}')
+  "
+}
+
+# 57. Get Positions in Risk Mode (Cross or Isolated - Requires risk mode 'cross' or 'isolated')
+bybit_positions_risk_mode() {
+  if [ -z "$1" ]; then
+    echo "Usage: bybit_positions_risk_mode <risk_mode>"
+    echo "Risk mode: 'cross' or 'isolated'. Example: bybit_positions_risk_mode cross"
+    return 1
+  fi
+  risk_mode="$1"
+  _ccxt_bybit_python "
+risk_mode = '$risk_mode'
+
+if risk_mode.lower() not in ['cross', 'isolated']:
+    print('Invalid risk mode. Use \'cross\' or \'isolated\'.')
+    exit(1)
+
+try:
+    positions = exchange.fetch_positions(params={'marginMode': risk_mode.upper()}) # Or fetch_positions_by_margin_mode, check CCXT and Bybit docs. Margin mode might need to be uppercase
+    if positions:
+        print(f'Positions in {risk_mode.capitalize()} Margin Mode:')
+        for pos in positions:
+            print(f'  Symbol: {pos['symbol']}, Side: {pos['side']}, Amount: {pos['amount']}, Margin Mode: {risk_mode.capitalize()}')
+    else:
+        print(f'No positions found in {risk_mode.capitalize()} Margin Mode.')
+except Exception as e:
+    print(f'Error fetching positions in {risk_mode.capitalize()} Margin Mode: {e}')
+  "
+}
+
+# 58. Get Order Types (Available order types for Bybit via CCXT)
+bybit_order_types() {
+  _ccxt_bybit_python "
+try:
+    order_types = exchange.get_order_types() # Or fetch_order_types, check CCXT docs for Bybit
+    print('Available Order Types on Bybit via CCXT:')
+    print(order_types)
+except Exception as e:
+    print(f'Error fetching order types: {e}')
+  "
+}
+
+# 59. Get Timeframes (Available OHLCV timeframes for Bybit via CCXT)
+bybit_timeframes() {
+  _ccxt_bybit_python "
+try:
+    timeframes = exchange.timeframes # Or exchange.get_timeframes() or fetch_timeframes(), check CCXT docs for Bybit
+    print('Available OHLCV Timeframes on Bybit via CCXT:')
+    print(timeframes) # Might be a dictionary, adjust output as needed
+except Exception as e:
+    print(f'Error fetching timeframes: {e}')
+  "
+}
+
+# 60. Get Account Info (General Account Information - might be verbose)
+bybit_account_info() {
+  _ccxt_bybit_python "
+try:
+    account_info = exchange.fetch_account() # Or fetch_account_info, fetch_user_info, check CCXT and Bybit docs for endpoint - might be verbose
+    print('Bybit Account Information:')
+    print(account_info) # Output structure is exchange-specific and might be very detailed
+except Exception as e:
+    print(f'Error fetching account information: {e}')
+  "
+}
+
+# --- End Even More CCXT Bybit Functions (Functions 41-60) ---
+
+# --- End CCXT Bybit Functions ---
+# Key bindings
+bindkey '^[e' _aichat_zsh
+bindkey '^[[H' beginning-of-line
+bindkey '^[[F' end-of-line
+bindkey '^?' backward-delete-char
+bindkey '^W' backward-kill-word
+bindkey '^R' history-incremental-search-backward
+bindkey '^[[3~' delete-char
+bindkey '^K' kill-whole-line
+bindkey '^A' beginning-of-line
+bindkey '^E' end-of-line
+bindkey '^L' clear-screen
+
+# Ensure history is encrypted/decrypted on shell start/exit
+[[ -f "$HISTFILE.gpg" ]] && decrypt_history
+trap 'encrypt_history' EXIT
+autoload -Uz compinit && compinit -i 2>/dev/null
+welcome_message
+source /path/to/aichat-completions.sh
+
+# Load custom configurations
+[[ -f "$HOME/.config/zsh/custom.zsh" ]] && source "$HOME/.config/zsh/custom.zsh"
+[[ -f "$HOME/.config/zsh/aliases.zsh" ]] && source "$HOME/.config/zsh/aliases.zsh"
+
+export PATH="$PATH:$HOME/platform-tools"
+export PYTHONPATH="/data/data/com.termux/files/usr/bin/python"
+# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+export PATH="$HOME/search:$PATH"
+alias kb="kubectl"
+export JAVA_HOME=/data/data/com.termux/files/usr/libexec/java_home
+alias cls="clear"
+export EDITOR="vim"
+export PATH="$HOME/bin:$PATH"
+alias vi="vim"
+export BYBIT_API_KEY="I9iTUO2iaVFK1NjNo1"
+export BYBIT_API_SECRET="B4KBZej8Mo6j4VwNpLqZ4M64BQJIqI4opiTR"
+export OPENROUTER_API_KEY="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"
+export GEMINI_API_KEY="AIzaSyBZ3Bl6zCbJSdgL3y4VYOOupxZe50nVIUg"
