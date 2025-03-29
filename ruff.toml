@@ -1,0 +1,89 @@
+# ruff.toml
+
+# Set the maximum line length, matching Black's default for consistency.
+line-length = 88
+
+# Target Python 3.12 for modern syntax and features.
+target-version = "py312"
+
+# Enable a comprehensive set of linting rules.
+select = [
+  "E",    # pycodestyle errors
+  "W",    # pycodestyle warnings
+  "F",    # pyflakes (syntax errors, undefined names)
+  "I",    # isort (import sorting)
+  "UP",   # pyupgrade (modern Python syntax suggestions)
+  "B",    # flake8-bugbear (bug detection and design issues)
+  "C4",   # flake8-comprehensions (idiomatic comprehensions)
+  "A",    # flake8-builtins (avoid shadowing builtins)
+  "N",    # pep8-naming (naming conventions)
+  "S",    # flake8-bandit (security checks)
+  "T20",  # flake8-print (detect print statements)
+  "SIM",  # flake8-simplify (code simplification)
+  "C90",  # mccabe (code complexity checks)
+  "TID",  # flake8-tidy-imports (import cleanliness)
+  "D",    # pydocstyle (docstring conventions)
+  "ANN",  # flake8-annotations (type annotation checks)
+]
+
+# Disable specific rules to avoid conflicts or over-strictness.
+ignore = [
+  "E501",   # Line too long (handled by formatter with `line-length`)
+  "D105",   # Missing docstring in magic method (often unnecessary)
+  "D107",   # Missing docstring in __init__ (common in simple classes)
+  "ANN101", # Missing type annotation for self (redundant in Python)
+  "ANN102", # Missing type annotation for cls (redundant in Python)
+]
+
+# Exclude non-source files and directories from linting/formatting.
+exclude = [
+  ".git",
+  ".mypy_cache",
+  ".ruff_cache",
+  "venv",
+  "__pycache__",
+  "build",
+  "dist",
+  "*.pyc",
+  "*/migrations/*.py",
+  "*/tests/fixtures/*",
+]
+
+# Allow unused variables with leading underscores.
+dummy-variable-rgx = "^(_+[a-zA-Z0-9_]*)$"
+
+# Customize linting rules per file or directory.
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Allow unused imports
+"tests/**" = ["S101", "T201", "D", "ANN"]
+"settings.py" = ["TID252"]
+"*/conftest.py" = ["D"]
+"scripts/*" = ["D", "T201"]
+
+# Enable preview mode for latest features.
+
+# Formatter settings.
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
+preview = true
+
+# isort settings.
+[lint.isort]
+known-first-party = ["my_project"]
+known-third-party = ["requests", "django", "pandas", "numpy"]
+split-on-trailing-comma = true
+
+# Enforce Google-style docstrings.
+[lint.pydocstyle]
+convention = "google"
+
+# Ban relative imports from parent directories.
+[lint.flake8-tidy-imports]
+ban-relative-imports = "parents"
+
+# Set max function complexity.
+[lint.mccabe]
+max-complexity = 10

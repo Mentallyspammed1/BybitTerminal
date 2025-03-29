@@ -1,0 +1,218 @@
+I'll analyze the provided `ruff.toml` configuration, suggest improvements based on modern practices, and enhance it for better usability, maintainability, and alignment with a typical Python project's needs. Below is the process I followed, followed by the complete improved code.
+
+---
+
+### Analysis of the Original Code
+1. **Strengths**:
+   - Comprehensive rule selection (`select`) covering style, bugs, security, and simplification.
+   - Sensible exclusions (`exclude`) for common non-source directories and files.
+   - Per-file ignores (`[lint.per-file-ignores]`) tailored to specific use cases like tests and `__init__.py`.
+   - Formatter settings aligned with Black (`line-length = 88`, `quote-style = "double"`).
+   - Good comments explaining rule choices and potential adjustments.
+
+2. **Areas for Improvement**:
+   - **Target Version**: `py310` (Python 3.10) is reasonable but could be updated to a newer version (e.g., `py311` or `py312`) for projects leveraging recent Python features, given the current date (March 28, 2025).
+   - **Rule Selection**: Missing some useful categories like `C90` (McCabe complexity) or `TID` (tidy imports), which could enhance code quality.
+   - **Docstrings**: `D` (pydocstyle) is commented out; enabling it with selective ignores could improve documentation consistency.
+   - **Annotations**: `ANN` (flake8-annotations) is commented out; enabling it selectively could encourage type hints without overwhelming legacy code.
+   - **isort Configuration**: `known-first-party` uses placeholders (`my_project`, `my_app`); it needs real project-specific values or a broader approach for flexibility.
+   - **Formatter Preview**: `preview = true` is commented out; enabling it could provide access to the latest formatting features, assuming Ruff has stabilized by 2025.
+   - **Complexity**: No complexity limit (`C90` rules) is set, which could allow overly complex functions to slip through.
+   - **Consistency**: Ignoring `E501` (line too long) while setting `line-length = 88` might confuse users if the formatter enforces it but the linter doesn’t report it.
+
+3. **Enhancement Ideas**:
+   - Update to a newer Python version (e.g., `py312`) for modern syntax support.
+   - Enable `D` and `ANN` with selective ignores to balance documentation and typing without being overly strict.
+   - Add `C90` for complexity checks and set a reasonable `max-complexity`.
+   - Improve `dummy-variable-rgx` to include trailing underscores (e.g., `_var_`) for broader dummy variable support.
+   - Enable `preview` mode for both linter and formatter to leverage Ruff’s latest features.
+   - Refine `exclude` and `[lint.per-file-ignores]` for broader applicability (e.g., add common test frameworks like `pytest`).
+   - Enhance `[lint.isort]` with more import categorization (e.g., `known-third-party`) and modern options like `split-on-trailing-comma`.
+
+---
+
+### Upgraded and Enhanced `ruff.toml`
+Below is the improved configuration, incorporating all ideas and maintaining the original structure where appropriate. I’ve added comments to explain changes and kept the file practical for a typical Python project in 2025.
+
+```toml
+# ruff.toml
+
+# Set the maximum line length, matching Black's default for consistency.
+line-length = 88
+
+# Target Python 3.12 for modern syntax and features (updated from py310 as of March 2025).
+target-version = "py312"
+
+# Enable a comprehensive set of linting rules.
+# See: https://docs.astral.sh/ruff/rules/
+select = [
+  "E",    # pycodestyle errors
+  "W",    # pycodestyle warnings
+  "F",    # pyflakes (syntax errors, undefined names)
+  "I",    # isort (import sorting)
+  "UP",   # pyupgrade (modern Python syntax suggestions)
+  "B",    # flake8-bugbear (bug detection and design issues)
+  "C4",   # flake8-comprehensions (idiomatic comprehensions)
+  "A",    # flake8-builtins (avoid shadowing builtins)
+  "N",    # pep8-naming (naming conventions)
+  "S",    # flake8-bandit (security checks)
+  "T20",  # flake8-print (detect print statements)
+  "SIM",  # flake8-simplify (code simplification)
+  "C90",  # mccabe (code complexity checks)
+  "TID",  # flake8-tidy-imports (import cleanliness)
+  "D",    # pydocstyle (docstring conventions - enabled for better docs)
+  "ANN",  # flake8-annotations (type annotation checks - enabled selectively)
+]
+
+# Disable specific rules to avoid conflicts or over-strictness.
+ignore = [
+  "E501",   # Line too long (handled by formatter with `line-length`)
+  "W503",   # Line break before binary operator (Black compatibility)
+  "D105",   # Missing docstring in magic method (often unnecessary)
+  "D107",   # Missing docstring in __init__ (common in simple classes)
+  "ANN101", # Missing type annotation for self (redundant in Python)
+  "ANN102", # Missing type annotation for cls (redundant in Python)
+]
+
+# Exclude non-source files and directories from linting/formatting.
+exclude = [
+  ".bzr",
+  ".direnv",
+  ".eggs",
+  ".git",
+  ".hg",
+  ".mypy_cache",
+  ".nox",
+  ".pants.d",
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  "venv",
+  "__pypackages__",
+  "_build",
+  "buck-out",
+  "build",
+  "dist",
+  "node_modules",
+  "*/migrations/*.py",  # Auto-generated migration files (e.g., Django)
+  "*.pyc",
+  "*.pyo",
+  "*.pyd",
+  "*.egg-info",
+  "*/__pycache__/*",
+  "*/tests/fixtures/*", # Common test fixture directory
+]
+
+# Allow unused variables with leading or trailing underscores (e.g., `_`, `_var`, `_var_`).
+dummy-variable-rgx = "^(_+[a-zA-Z0-9_]*)$"
+
+# Customize linting rules per file or directory.
+[lint.per-file-ignores]
+"__init__.py" = [
+  "F401", # Unused imports (common for exposing symbols)
+]
+"tests/**" = [
+  "S101", # Allow assert statements in tests
+  "T201", # Allow print statements in tests
+  "D",    # Ignore docstring rules in tests
+  "ANN",  # Ignore type annotations in tests (optional strictness)
+]
+"settings.py" = [
+  "TID252", # Allow relative imports in settings files
+]
+"*/conftest.py" = [
+  "D", # Ignore docstrings in pytest conftest files
+]
+"scripts/*" = [
+  "D",    # Ignore docstrings in utility scripts
+  "T201", # Allow print statements in scripts
+]
+
+# Linter-specific settings
+[lint]
+# Enable preview mode for access to the latest linting features (stable by 2025 assumed).
+preview = true
+# No rules marked unfixable; all can be auto-fixed with `--fix`.
+unfixable = []
+
+# Formatter-specific settings
+[format]
+quote-style = "double"          # Use double quotes, consistent with Black
+indent-style = "space"          # Use spaces for indentation (Python standard)
+skip-magic-trailing-comma = false # Respect trailing commas for readability
+line-ending = "lf"              # Unix-style line endings for cross-platform consistency
+preview = true                  # Enable preview for latest formatting features
+
+# Import sorting settings (isort)
+[lint.isort]
+# Define project-specific modules (replace with actual names, e.g., "src", "my_package").
+known-first-party = ["my_project", "my_app"]
+# Common third-party libraries for better import grouping.
+known-third-party = ["requests", "django", "pandas", "numpy"]
+# Split imports with multiple names on trailing commas for clarity.
+split-on-trailing-comma = true
+
+# Docstring settings (pydocstyle)
+[lint.pydocstyle]
+convention = "google"  # Enforce Google-style docstrings for consistency
+
+# Import tidiness settings (flake8-tidy-imports)
+[lint.flake8-tidy-imports]
+# Ban relative imports from parent directories for cleaner import structure.
+ban-relative-imports = "parents"
+
+# Complexity settings (mccabe)
+[lint.mccabe]
+# Limit function complexity to 10 (default), adjustable based on project needs.
+max-complexity = 10
+```
+
+---
+
+### Key Improvements and Rationale
+1. **Target Version**:
+   - Updated to `py312` (Python 3.12) to leverage features like improved type hints and syntax, reflecting a modern project in 2025.
+
+2. **Rule Selection**:
+   - Added `C90` (McCabe complexity) to catch overly complex functions.
+   - Added `TID` (tidy imports) for stricter import hygiene.
+   - Enabled `D` (pydocstyle) and `ANN` (annotations) with selective ignores (`D105`, `D107`, `ANN101`, `ANN102`) to encourage documentation and typing without overwhelming legacy code.
+
+3. **Ignores**:
+   - Kept `E501` and `W503` for formatter compatibility but added docstring and annotation ignores to balance strictness.
+
+4. **Exclusions**:
+   - Added `*/tests/fixtures/*` to exclude test fixtures, common in frameworks like pytest.
+
+5. **Dummy Variables**:
+   - Updated `dummy-variable-rgx` to `^(_+[a-zA-Z0-9_]*)$`, allowing trailing underscores (e.g., `_var_`) for broader dummy variable support.
+
+6. **Per-File Ignores**:
+   - Expanded `tests/*` to `tests/**` for recursive test directories.
+   - Added `scripts/*` for utility scripts, ignoring docstrings and prints.
+
+7. **Linter and Formatter**:
+   - Enabled `preview = true` for both, assuming Ruff’s preview features are stable by 2025, providing access to cutting-edge checks and formatting.
+
+8. **isort Enhancements**:
+   - Added `known-third-party` with common libraries for better import grouping.
+   - Enabled `split-on-trailing-comma` for cleaner multi-import lines.
+
+9. **Docstrings**:
+   - Enabled `D` with `convention = "google"`, a popular choice for readable, structured docstrings.
+
+10. **Import Tidiness**:
+    - Added `[lint.flake8-tidy-imports]` with `ban-relative-imports = "parents"` to enforce absolute imports, reducing ambiguity.
+
+11. **Complexity**:
+    - Added `[lint.mccabe]` with `max-complexity = 10` to prevent overly complex functions, adjustable per project.
+
+---
+
+### Final Notes
+- **Customization**: Replace `known-first-party` values (`my_project`, `my_app`) with actual project module names (e.g., `src`, `app`).
+- **Flexibility**: Adjust `max-complexity`, `ignore`, and `[lint.per-file-ignores]` based on project-specific needs.
+- **Consistency**: The configuration aligns with Black and modern Python practices, ensuring a cohesive workflow.
+
+This enhanced `ruff.toml` provides a robust, modern setup for linting and formatting Python code, suitable for a wide range of projects in 2025.

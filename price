@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+# --------------------------------------------------
+# Script Name:  price - Fetches cryptocurrency price from Bybit using ccxt
+# Purpose:      Get current crypto price from Bybit, using ccxt library.
+# Usage (from alias): price <symbol>  or just: price (will prompt for symbol)
+# Example: price BTC  or price ETH
+# --------------------------------------------------
+
+import ccxt
+import sys
+
+def fetch_bybit_price(symbol):
+    """Fetches the last traded price of a symbol from Bybit using ccxt."""
+    try:
+        exchange = ccxt.bybit()  # Initialize the Bybit exchange
+        market_symbol = f"{symbol.upper()}/USDT" # Construct Bybit market symbol (e.g., BTC/USDT)
+
+        if market_symbol not in exchange.load_markets(): # Check if market exists. load_markets() is cached.
+            return None, f"Error: Market '{market_symbol}' not found on Bybit."
+
+        ticker = exchange.fetch_ticker(market_symbol) # Fetch ticker data
+        if ticker and 'last' in ticker:
+            return ticker['last'], None # Return price and no error
+        else:
+            return None, f"Error: Could not retrieve price for '{market_symbol}'."
+
+    except ccxt.ExchangeError as e:
+        return None, f"CCXT Exchange Error: {e}"
+    except ccxt.NetworkError as e:
+        return None, f"CCXT Network Error: {e}"
+    except Exception as e:
+        return None, f"An unexpected error occurred: {e}"
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        symbol_input = sys.argv[1]
+    else:
+        symbol_input = input("Enter cryptocurrency symbol (e.g., BTC, ETH): ")
+
+    if not symbol_input:
+        print("Error: No symbol provided.")
+        print("Usage: price <symbol>")
+        sys.exit(1)
+
+    price, error_message = fetch_bybit_price(symbol_input)
+
+    if error_message:
+        print(error_message)
+        sys.exit(1)
+    elif price is not None:
+        print(f"Current price of {symbol_input.upper()} on Bybit (USDT):")
+        print(f"{price} USDT")
+        sys.exit(0)
+    else:
+        print("Error: Failed to fetch price.")
+        sys.exit(1)
